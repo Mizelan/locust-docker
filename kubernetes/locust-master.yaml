@@ -3,12 +3,12 @@ kind: Service
 metadata:
   name: locust-master
   labels:
-    name: locust
+    name: locust-master
 spec:
   type: LoadBalancer
   selector:
-    name: locust
-    role: master  
+    name: locust-master
+    role: master
   ports:
     - port: 8089
       protocol: TCP
@@ -18,37 +18,45 @@ spec:
       name: master-port1
     - port: 5558
       protocol: TCP
-      name: master-port2 
+      name: master-port2
 ---
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: locust-master
 spec:
   replicas: 1
+  selector:
+    matchLabels:
+      name: locust-master
   template:
     metadata:
       labels:
-        name: locust
+        name: locust-master
         role: master
     spec:
       volumes:
-      - name: locust-volume
-        configMap:
-          name: locust-configmap
+        - name: locust-volume
+          configMap:
+            name: locust-configmap
       containers:
         - name: locust
-          image: peterevans/locust:latest
+          image: locustio/locust:1.1.1
           env:
-            - name: LOCUST_MODE
-              value: master
-            - name: LOCUST_LOCUSTFILE_PATH
-              value: "/locust-tasks/locustfile.py"
             - name: LOCUST_TARGET_HOST
-              value: "https://example.com"
+              value: "https://api.nexon.co.kr"
           volumeMounts:
-          - name: locust-volume
-            mountPath: /locust-tasks
+            - name: locust-volume
+              mountPath: /locust-tasks
+          args:
+            [
+              "--master",
+              "--host",
+              "$LOCUST_TARGET_HOST",
+              "-f",
+              "/locust-tasks/basic.py",
+            ]
+          command: ["locust"]
           ports:
             - containerPort: 8089
             - containerPort: 5557

@@ -1,31 +1,37 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: locust-slave
 spec:
   replicas: 10
+  selector:
+    matchLabels:
+      name: locust-slave
   template:
     metadata:
       labels:
-        name: locust
+        name: locust-slave
         role: slave
     spec:
       volumes:
-      - name: locust-volume
-        configMap:
-          name: locust-configmap    
+        - name: locust-volume
+          configMap:
+            name: locust-configmap
       containers:
         - name: locust
-          image: peterevans/locust:latest
+          image: locustio/locust:1.1.1
           env:
-            - name: LOCUST_MODE
-              value: slave
-            - name: LOCUST_MASTER
-              value: locust-master
-            - name: LOCUST_LOCUSTFILE_PATH
-              value: "/locust-tasks/locustfile.py"
             - name: LOCUST_TARGET_HOST
-              value: "https://example.com"
+              value: "https://api.nexon.co.kr"
+          args:
+            [
+              "--worker",
+              "--master-host",
+              "locust-master",
+              "-f",
+              "/locust-tasks/basic.py",
+            ]
+          command: ["locust"]
           volumeMounts:
-          - name: locust-volume
-            mountPath: /locust-tasks
+            - name: locust-volume
+              mountPath: /locust-tasks
